@@ -37,21 +37,29 @@ uvicorn app.main:app --reload
 - Passwords hashed with bcrypt; JWT carries `admin_id` + `org_id`. `OAuth2PasswordBearer` powers the Swagger Authorize button.
 - Configurable via env vars `MONGODB_URI` and `MONGODB_DB`. SECRET_KEY is in code for demo; set `SECRET_KEY` env in production.
 
-## High-level diagram
-```
-[Client] → FastAPI routers (org, admin)
-		  ↓
-	  Auth (JWT, OAuth2)
-		  ↓
-	  Database service
-		  ↓
-  MongoDB (master: organizations)
-		  ↓
-  Dynamic collections per org
-```
+### High-level Architecture Diagram
+![Architecture Diagram](./architecture-diagram.png)
 
 ## Trade-offs & scalability
 - Single Mongo database with per-org collections keeps onboarding lightweight; Mongo handles many collections but very high tenant counts may stress namespace management.
 - JWT-only auth is simple; adding refresh tokens or revocation lists would help enterprise needs.
 - Using one database keeps deployment simple; sharding per-org or per-tenant databases would isolate noisy neighbors better at the cost of operational overhead.
 - Application logic is thin; a message queue could back heavy data migrations when renaming orgs instead of synchronous copy.
+
+
+### Brief notes explaining the design choices
+
+- Used **FastAPI** because it’s simple, fast to develop with, and gives interactive Swagger UI (/docs) for easy testing.
+- Kept all MongoDB operations inside a single **Database** class for cleaner and more organized code.
+- Used **bcrypt** to securely hash passwords and **PyJWT** for token generation.
+- Implemented proper JWT authentication with **OAuth2PasswordBearer** so the green "Authorize" button appears and works smoothly in Swagger UI.
+- Created dynamic MongoDB collections exactly as requested (org_<name>) and handled data sync when updating organization name.
+- Protected update and delete endpoints — only the owner (authenticated admin) can modify or delete their organization.
+- Made small, regular commits to show progress clearly.
+- Added a simple debug endpoint to list all organizations (helpful during development).
+**UUID idea in architecture note** → Mentioned in the architecture section as a small improvement I’d use in real production.
+
+Everything follows the assignment requirements.  
+Code is modular and easy to extend if needed.
+
+Time spent: around 5 hours
